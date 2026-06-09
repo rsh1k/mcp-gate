@@ -1,0 +1,69 @@
+# Example mcp-gate policy.
+# Rules are evaluated top to bottom; FIRST match wins. If nothing matches,
+# default_effect applies. Keep default at "deny" for a locked-down posture.
+
+name: support-agent-policy
+version: "1"
+default_effect: deny
+
+rules:
+  # 0. Hold ANY call for human approval if its arguments score high on the
+  #    threat scan (prompt injection, secret exfil, command injection, etc).
+  #    Approval (not deny) is deliberate: heuristics have false positives, so a
+  #    hit costs a review click, not a broken workflow.
+  - id: threat-scan-hold
+    effect: require_approval
+    min_threat_score: 4
+    reason: "tool-call arguments tripped the threat scanner; human review needed"
+    obligations:
+      notify: "secops-review"
+
+  # 1. Read-only discovery tools are always fine for anyone.
+  - id: allow-readonly
+    effect: allow
+    tools: ["*.read", "*.list", "*.search", "*.get"]
+    reason: "read-only tools carry no write risk"
+
+  # 2. The support agent may issue refunds, but only small ones, only itself,
+  #    and only up to a cumulative ceiling per session (stateful budget).
+  - id: refund-small-capped
+    effect: allow
+    tools: ["billing.refund"]
+    agents: ["support-*"]
+    require_roles: ["support-agent"]
+    when:
+      field: amount
+      op: lt
+      value: 500
+    budget:
+      key: refund_total
+      field: amount
+      limit: 2000
+    reason: "support agents may refund <$500 each, <$2000 per session"
+
+  # 3. Refunds that didn't match rule 2 (too big, over budget, wrong agent)
+  #    require a human to approve.
+  - id: refund-large-approval
+    effect: require_approval
+    tools: ["billing.refund"]
+    reason: "large or over-budget refunds need human approval"
+
+  # 4. Outbound email may go through, but strip any bcc field before forwarding.
+  - id: email-redact-bcc
+    effect: redact
+    tools: ["email.send"]
+    redact_fields: ["bcc", "headers.x-internal"]
+    reason: "prevent silent bcc exfiltration"
+    obligations:
+      notify: "secops-review"
+
+  # 5. Block writes to sensitive paths outright.
+  - id: deny-sensitive-fs
+    effect: deny
+    tools: ["fs.write", "fs.delete"]
+    when:
+      any:
+        - {field: path, op: startswith, value: "/etc"}
+        - {field: path, op: startswith, value: "/var/secrets"}
+        - {field: path, op: regex, value: "\\.env$"}
+    reason: "sensitive filesystem locations are off-limits"

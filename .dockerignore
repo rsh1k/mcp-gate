@@ -1,0 +1,16 @@
+.git
+.github
+__pycache__/
+*.pyc
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+*.jsonl
+audit*.jsonl
+compliance*.md
+.pytest_cache/
+.mypy_cache/
+tests/
+.DS_Store

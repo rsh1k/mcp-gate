@@ -1,0 +1,32 @@
+[project]
+name = "mcp-gate"
+version = "0.3.0"
+description = "Runtime policy-enforcement proxy for MCP tool calls, with NIST-aligned audit & threat scanning"
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+keywords = ["mcp", "ai-agents", "security", "policy", "governance", "audit", "nist", "owasp"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Information Technology",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Topic :: Security",
+]
+dependencies = []  # core has ZERO required deps; stdlib only
+
+[project.optional-dependencies]
+yaml = ["pyyaml>=6.0"]   # only needed to load .yaml policies (JSON works without)
+crypto = ["cryptography>=42.0"]  # Ed25519 asymmetric agent identity
+dev = ["pytest>=7.0", "pyyaml>=6.0", "cryptography>=42.0"]
+
+[project.scripts]
+mcp-gate = "mcpgate.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["mcpgate"]
