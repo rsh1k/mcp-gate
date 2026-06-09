@@ -21,7 +21,7 @@ from .identity import (
 from .threats import ThreatScanner, ScanResult, ThreatCategory
 from .compliance import CONTROL_MAP, coverage_summary
 
-__version__ = "0.3.0"
+__version__ = "0.3.1"
 
 __all__ = [
     "Decision",

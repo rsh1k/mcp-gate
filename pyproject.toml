@@ -1,16 +1,16 @@
 [project]
-name = "mcp-gate"
-version = "0.3.0"
+name = "mcp-gate-policy"
+version = "0.3.1"
 description = "Runtime policy-enforcement proxy for MCP tool calls, with NIST-aligned audit & threat scanning"
 readme = "README.md"
 requires-python = ">=3.10"
-license = {text = "MIT"}
+license = "MIT"
+license-files = ["LICENSE"]
 keywords = ["mcp", "ai-agents", "security", "policy", "governance", "audit", "nist", "owasp"]
 classifiers = [
     "Development Status :: 3 - Alpha",
     "Intended Audience :: Developers",
     "Intended Audience :: Information Technology",
-    "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
     "Topic :: Security",
 ]
@@ -25,7 +25,7 @@ dev = ["pytest>=7.0", "pyyaml>=6.0", "cryptography>=42.0"]
 mcp-gate = "mcpgate.cli:main"
 
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]

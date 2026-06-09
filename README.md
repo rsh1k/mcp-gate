@@ -89,11 +89,31 @@ See the full control mapping with `mcp-gate controls`.
 
 ## Install
 
+From PyPI:
+
+```bash
+pip install mcp-gate-policy              # core, zero runtime deps
+pip install "mcp-gate-policy[yaml]"      # + YAML policy support (JSON works without)
+pip install "mcp-gate-policy[crypto]"    # + Ed25519 asymmetric agent identity
+pip install "mcp-gate-policy[yaml,crypto]"   # both extras
+```
+
+Or with [uv](https://docs.astral.sh/uv/): `uv pip install mcp-gate-policy`.
+
+Either way the CLI is available as `mcp-gate`:
+
+```bash
+mcp-gate --help
+```
+
+From source (for development or to run the tests):
+
 ```bash
 git clone https://github.com/rsh1k/mcp-gate.git
 cd mcp-gate
-pip install -e .            # core has zero runtime deps
-pip install -e ".[yaml]"    # add this if you want YAML policies (JSON works without)
+pip install -e ".[dev]"     # installs test deps too
+python tests/test_core.py   # 40 unit tests
+python tests/test_samples.py  # 20 end-to-end samples
 ```
 
 ## Quickstart

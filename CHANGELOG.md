@@ -4,6 +4,15 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 semantic versioning (pre-1.0: minor versions may include breaking changes).
 
+## [0.3.1] - 2026-06-09
+
+### Changed
+- Published distribution name is **`mcp-gate-policy`** (the import package
+  remains `mcpgate` and the CLI command remains `mcp-gate`).
+- README now documents `pip install mcp-gate-policy` with extras.
+- Modernized `pyproject.toml` license to an SPDX string + `license-files`
+  (removes setuptools deprecation warnings; requires setuptools ≥77).
+
 ## [0.3.0] - 2026-06-09
 
 ### Added
