@@ -88,6 +88,10 @@ jobs:
   release:
     needs: [gate, test]
     runs-on: ubuntu-latest
+    # PyPI's trusted publisher for mcp-gate-policy expects an environment: the first
+    # run without one failed with `environment: MISSING` in the OIDC claims. Set to
+    # `pypi`, matching veritrail and revoco, so all four declare the same name.
+    environment: pypi
     outputs:
       version: ${{ steps.bump.outputs.version }}
       published: ${{ steps.exists.outputs.already }}
