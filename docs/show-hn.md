@@ -8,7 +8,7 @@ comments that always come.
 
 ## Title options (pick one, ≤ 80 chars)
 
-1. `Show HN: mcp-gate – a policy firewall for AI agent tool calls (MIT)`
+1. `Show HN: mcp-gate – a policy firewall for AI agent tool calls (Apache-2.0)`
 2. `Show HN: Runtime governance proxy for MCP tool calls, mapped to NIST/OWASP`
 3. `Show HN: mcp-gate – intercept, allow/deny/redact every AI-agent tool call`
 
@@ -61,7 +61,7 @@ feeding-approval, not detection. Everything that still needs hardening is marked
 with `# HARDENING:` comments in the source. It's stdio-transport only right now;
 HTTP + OAuth is the next milestone.
 
-Core is stdlib-only (zero runtime deps), MIT licensed. 37 unit tests + a
+Core is stdlib-only (zero runtime deps), Apache-2.0 licensed. 37 unit tests + a
 20-sample end-to-end harness (all green; the audit chain verifies over all 20).
 
 Repo: https://github.com/rsh1k/mcp-gate
@@ -97,7 +97,7 @@ caveat today is that session budgets use an in-memory store, so multi-replica
 budget enforcement needs the Redis-backed store (a documented roadmap item).
 
 **"Why would I trust security software some stranger posted?"**
-You shouldn't, on my say-so. That's why it's MIT, dependency-free, small enough
+You shouldn't, on my say-so. that's why it's Apache-2.0, dependency-free, small enough
 to read in an afternoon, and shipped with its tests and an honest list of what
 isn't done. Read it, run it, get it reviewed before it touches production.
 

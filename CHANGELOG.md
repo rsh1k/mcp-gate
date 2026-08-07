@@ -4,6 +4,12 @@ All notable changes to this project are documented here. The format is based on
 [Keep a Changelog](https://keepachangelog.com/), and this project adheres to
 semantic versioning (pre-1.0: minor versions may include breaking changes).
 
+## Unreleased
+
+### Changed
+
+- **Relicensed from MIT to Apache-2.0**, matching the rest of the family (`veritrail`, `mnemosyne`, `revoco`). Apache-2.0 adds an explicit patent grant, which MIT leaves unsaid — worth having on anything that might end up inside an enterprise control path. Existing MIT-licensed copies stay MIT; the licence cannot be retracted from what was already released.
+
 ## [0.3.1] - 2026-06-09
 
 ### Changed

@@ -3,7 +3,7 @@
 > A runtime policy-enforcement proxy for the Model Context Protocol (MCP) — a **firewall for AI-agent tool calls**, with tamper-evident audit logging, heuristic threat scanning, and a control mapping to the NIST AI RMF and OWASP Agentic Top 10.
 
 <p>
-<a href="#license"><img alt="License: MIT" src="https://img.shields.io/badge/License-MIT-yellow.svg"></a>
+<a href="#license"><img alt="License: Apache 2.0" src="https://img.shields.io/badge/License-Apache_2.0-blue.svg"></a>
 <img alt="Python 3.10+" src="https://img.shields.io/badge/python-3.10%2B-blue.svg">
 <img alt="Dependencies: none" src="https://img.shields.io/badge/runtime%20deps-0-brightgreen.svg">
 <img alt="Tests" src="https://img.shields.io/badge/tests-37%20unit%20%2B%2020%20samples-success.svg">
@@ -318,6 +318,25 @@ path: read it, run the tests, add your own, get it independently reviewed, and
 threat-model your deployment. Do not treat any tool — including this one — as
 correct because someone said so.
 
+
+## Relationship to revoco
+
+[`revoco`](https://github.com/rsh1k/revoco) merges this package with
+[`veritrail`](https://github.com/rsh1k/veritrail) and
+[`mnemosyne`](https://github.com/rsh1k/mnemosyne), and adds a reversal layer none of
+them had — planning an undo *before* an action runs, then rolling back a compromised
+grant's whole subtree in one call.
+
+**What moved into revoco:** the policy decision point — allow / deny /
+require_approval / redact, argument-aware conditions, and stateful session budgets.
+
+**What did not: the stdio MCP proxy.** revoco exposes a `ControlPlane` API and has no
+MCP integration at all, so it cannot be put in front of Claude Code, Cursor or any
+other MCP client the way this package can. If you want a policy firewall you drop
+into an MCP config and nothing else changes, that is still exactly this.
+
+Both are Apache-2.0 and both are maintained.
+
 ## License
 
-[MIT](LICENSE).
+[Apache-2.0](LICENSE).

@@ -4,7 +4,7 @@ version = "0.3.1"
 description = "Runtime policy-enforcement proxy for MCP tool calls, with NIST-aligned audit & threat scanning"
 readme = "README.md"
 requires-python = ">=3.10"
-license = "MIT"
+license = "Apache-2.0"
 license-files = ["LICENSE"]
 keywords = ["mcp", "ai-agents", "security", "policy", "governance", "audit", "nist", "owasp"]
 classifiers = [

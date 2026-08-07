@@ -1,62 +1,193 @@
 name: release
 
-# Triggers on a version tag like v0.2.0. Publishes the Python package to PyPI
-# using Trusted Publishing (OIDC — no stored token) and the container image to
-# GHCR. Set up Trusted Publishing once at:
-#   https://pypi.org/manage/project/mcp-gate/settings/publishing/
+# Push source to main and a new version lands on PyPI. Nothing else to remember.
+#
+# Guards, because "publish on every push" unguarded is a bad idea:
+#   * tests must pass first — the publish job needs the test job
+#   * docs-only changes do not cut a release (see `paths` below)
+#   * a `[skip release]` marker in the commit SUBJECT skips it
+#   * a version already on PyPI is never republished; PyPI versions are immutable, so
+#     a re-run has to be a no-op rather than a hard failure
+#   * the bump commit is pushed with GITHUB_TOKEN, and GITHUB_TOKEN pushes do not
+#     trigger workflows — that is what stops the loop
+#
+# Bump level: `[major]` or `[minor]` in the commit subject, otherwise patch. Or run
+# it by hand from the Actions tab and pick.
+#
+# Markers are read from the SUBJECT LINE ONLY. Scanning the whole message means a
+# commit that merely documents `[skip release]` skips its own release.
+#
+# Do not rename this file or change `environment:` — PyPI Trusted Publishing is keyed
+# to both, and a mismatch fails the upload with `invalid-publisher`.
 
 on:
   push:
-    tags: ["v*"]
+    branches: [main]
+    paths:
+      - "mcpgate/**"
+      - "tests/**"
+      - "pyproject.toml"
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: "Version bump level"
+        required: true
+        default: patch
+        type: choice
+        options: [patch, minor, major]
+
+concurrency:
+  group: release
+  cancel-in-progress: false
 
 jobs:
-  test:
+  gate:
     runs-on: ubuntu-latest
+    outputs:
+      release: ${{ steps.decide.outputs.release }}
+      level: ${{ steps.decide.outputs.level }}
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - run: pip install -e ".[dev]"
-      - run: python tests/test_core.py
-      - run: python tests/test_samples.py
-
-  pypi:
-    needs: test
-    runs-on: ubuntu-latest
-    permissions:
-      id-token: write          # required for PyPI Trusted Publishing
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-      - name: Build
+      - name: Decide whether to release, and at what level
+        id: decide
+        env:
+          EVENT: ${{ github.event_name }}
+          INPUT_BUMP: ${{ inputs.bump }}
         run: |
-          pip install --upgrade build twine
-          python -m build
-          twine check dist/*
+          set -euo pipefail
+          if [ "$EVENT" = "workflow_dispatch" ]; then
+            echo "release=true"        >> "$GITHUB_OUTPUT"
+            echo "level=${INPUT_BUMP}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          SUBJECT="$(git log -1 --format=%s)"
+          echo "Subject: $SUBJECT"
+          if printf '%s' "$SUBJECT" | grep -qiF '[skip release]'; then
+            echo "release=false" >> "$GITHUB_OUTPUT"
+            echo "level=patch"   >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          if printf '%s' "$SUBJECT" | grep -qiF '[major]'; then LEVEL=major
+          elif printf '%s' "$SUBJECT" | grep -qiF '[minor]'; then LEVEL=minor
+          else LEVEL=patch; fi
+          echo "release=true" >> "$GITHUB_OUTPUT"
+          echo "level=$LEVEL" >> "$GITHUB_OUTPUT"
+
+  test:
+    needs: gate
+    if: needs.gate.outputs.release == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      - run: uv sync --all-extras
+      - run: uv run pytest -q
+
+  release:
+    needs: [gate, test]
+    runs-on: ubuntu-latest
+    outputs:
+      version: ${{ steps.bump.outputs.version }}
+      published: ${{ steps.exists.outputs.already }}
+    permissions:
+      contents: write   # push the version bump and the tag
+      id-token: write   # OIDC for PyPI Trusted Publishing — no API token anywhere
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Bump version
+        id: bump
+        env:
+          LEVEL: ${{ needs.gate.outputs.level }}
+        run: |
+          set -euo pipefail
+          NEW=$(python3 scripts/bump_version.py "$LEVEL")
+          echo "version=$NEW" >> "$GITHUB_OUTPUT"
+          echo "New version: $NEW"
+
+      - name: Check PyPI does not already have this version
+        id: exists
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          CODE=$(curl -s -o /dev/null -w '%{http_code}' \
+            "https://pypi.org/pypi/mcp-gate-policy/$VERSION/json")
+          if [ "$CODE" = "200" ]; then
+            echo "already=true" >> "$GITHUB_OUTPUT"
+            echo "::warning::mcp-gate-policy $VERSION is already on PyPI; skipping publish"
+          else
+            echo "already=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build
+        if: steps.exists.outputs.already == 'false'
+        run: uv build
+
+      - name: Validate metadata
+        if: steps.exists.outputs.already == 'false'
+        run: uvx twine check dist/*
+
       - name: Publish to PyPI
+        if: steps.exists.outputs.already == 'false'
         uses: pypa/gh-action-pypi-publish@release/v1
+        # No `password:` — Trusted Publishing authenticates with the OIDC token
+        # granted by `id-token: write` above.
+
+      # Ordering matters: PyPI is the irreversible step, so it goes first. Bumping and
+      # tagging beforehand meant a failed publish left a tag and a consumed version
+      # number pointing at a release that never existed.
+      - name: Commit and tag the bump
+        if: steps.exists.outputs.already == 'false'
+        env:
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Release v$VERSION [skip release]"
+          git tag -a "v$VERSION" -m "v$VERSION"
+          git push origin HEAD:main --follow-tags
+
+      - name: GitHub release
+        if: steps.exists.outputs.already == 'false'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          VERSION: ${{ steps.bump.outputs.version }}
+        run: |
+          gh release create "v$VERSION" --title "v$VERSION" --generate-notes dist/*
 
   image:
-    needs: test
+    needs: [gate, release]
+    if: needs.gate.outputs.release == 'true' && needs.release.outputs.published == 'false'
     runs-on: ubuntu-latest
     permissions:
-      packages: write          # required to push to GHCR
+      contents: read
+      packages: write
     steps:
+      # Chained after the release rather than triggered by its tag: the tag is pushed
+      # with GITHUB_TOKEN, and GITHUB_TOKEN pushes do not trigger workflows, so a
+      # tag-triggered image job would quietly stop running the day the release flow
+      # changed.
       - uses: actions/checkout@v4
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+        with:
+          ref: main
+      - uses: docker/login-action@v3
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - name: Build and push
-        uses: docker/build-push-action@v6
+      - uses: docker/build-push-action@v6
         with:
           context: .
           push: true
           tags: |
             ghcr.io/${{ github.repository }}:latest
-            ghcr.io/${{ github.repository }}:${{ github.ref_name }}
+            ghcr.io/${{ github.repository }}:${{ needs.release.outputs.version }}
