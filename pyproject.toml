@@ -1,6 +1,6 @@
 [project]
 name = "mcp-gate-policy"
-version = "0.3.1"
+version = "0.3.2"
 description = "Runtime policy-enforcement proxy for MCP tool calls, with NIST-aligned audit & threat scanning"
 readme = "README.md"
 requires-python = ">=3.10"
