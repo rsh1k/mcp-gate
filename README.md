@@ -235,7 +235,7 @@ Two verifiers ship in the box:
 - **HMAC** (`--secret`, stdlib-only): symmetric. Fine for dev and single-tenant
   self-hosting, but the same secret signs and verifies, so it gives no
   non-repudiation.
-- **Ed25519** (`--pubkey`, needs `pip install mcp-gate[crypto]`): asymmetric. The
+- **Ed25519** (`--pubkey`, needs `pip install mcp-gate-policy[crypto]`): asymmetric. The
   agent holds the private key; **mcp-gate holds only the public key**, so the
   proxy can verify identity but cannot forge it. This is the production-
   appropriate choice and the direction NIST's NCCoE agent-identity work points at
